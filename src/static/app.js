@@ -4,6 +4,59 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // Helper to render participants list with collapsing behavior
+  function renderParticipants(participants) {
+    const maxVisible = 5;
+
+    if (!participants.length) {
+      return `<p class="no-participants">No participants yet</p>`;
+    }
+
+    const visible = participants.slice(0, maxVisible);
+    const remainingParticipants = participants.slice(maxVisible);
+
+    const visibleHTML = visible.map((p) => `<li>${p}</li>`).join("");
+
+    if (!remainingParticipants.length) {
+      return `<ul class="participant-list">${visibleHTML}</ul>`;
+    }
+
+    const hiddenHTML = remainingParticipants.map((p) => `<li>${p}</li>`).join("");
+    const remainingCount = remainingParticipants.length;
+
+    return `
+      <ul class="participant-list">${visibleHTML}</ul>
+      <ul class="participant-list extra-list collapsed">${hiddenHTML}</ul>
+      <button class="toggle-participants" type="button" data-remaining="${remainingCount}">
+        Show ${remainingCount} more
+      </button>
+    `;
+  }
+
+  // Handle expand/collapse clicks on participant overflow
+  activitiesList.addEventListener("click", (event) => {
+    const btn = event.target.closest(".toggle-participants");
+    if (!btn) return;
+
+    const section = btn.closest(".participants-section");
+    if (!section) return;
+
+    const extraList = section.querySelector(".extra-list");
+    if (!extraList) return;
+
+    const isCollapsed = extraList.classList.contains("collapsed");
+    if (isCollapsed) {
+      extraList.classList.remove("collapsed");
+      extraList.classList.add("expanded");
+      btn.textContent = `Show less`;
+    } else {
+      extraList.classList.remove("expanded");
+      extraList.classList.add("collapsed");
+      const remaining = btn.getAttribute("data-remaining") || "0";
+      btn.textContent = `Show ${remaining} more`;
+    }
+  });
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -20,11 +73,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        const participantsHtml = renderParticipants(details.participants);
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            <h5>Participants</h5>
+            ${participantsHtml}
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
